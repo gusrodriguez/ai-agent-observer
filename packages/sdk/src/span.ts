@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { EventQueue } from "./queue.js";
 
 export interface SpanOptions {
   parentSpanId?: string;
@@ -26,19 +26,29 @@ export interface TraceToolOptions {
   metadata?: Record<string, unknown>;
 }
 
+let spanCounter = 0;
+export function generateSpanId(): string {
+  return `s_${Date.now()}_${++spanCounter}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export class SpanHandle {
   constructor(
-    private prisma: PrismaClient,
+    private queue: EventQueue,
     public readonly id: string,
     public readonly traceId: string,
+    private readonly startedAt: Date,
   ) {}
 
-  async startSpan(
+  startSpan(
     name: string,
     options: Omit<SpanOptions, "parentSpanId"> = {},
-  ): Promise<SpanHandle> {
-    const span = await this.prisma.span.create({
+  ): SpanHandle {
+    const id = generateSpanId();
+    const now = new Date();
+    this.queue.push({
+      kind: "span",
       data: {
+        id,
         traceId: this.traceId,
         parentSpanId: this.id,
         name,
@@ -46,35 +56,37 @@ export class SpanHandle {
         modelTier: options.modelTier,
         role: options.role,
         phase: options.phase,
-        input: options.input as any,
-        metadata: options.metadata as any,
+        input: options.input,
+        metadata: options.metadata,
+        startedAt: now.toISOString(),
       },
     });
-    return new SpanHandle(this.prisma, span.id, this.traceId);
+    return new SpanHandle(this.queue, id, this.traceId, now);
   }
 
-  async addEvent(
+  addEvent(
     type: string,
     message: string,
     metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    await this.prisma.event.create({
+  ): void {
+    this.queue.push({
+      kind: "event",
       data: {
         spanId: this.id,
         type,
         message,
-        metadata: metadata as any,
+        metadata: metadata ?? null,
       },
     });
   }
 
-  async traceTool<T>(
+  traceTool<T>(
     name: string,
     input: unknown,
     fn: () => Promise<T>,
     options: TraceToolOptions = {},
   ): Promise<T> {
-    const child = await this.startSpan(name, {
+    const child = this.startSpan(name, {
       role: "tool",
       input,
       agent: options.agent,
@@ -82,36 +94,53 @@ export class SpanHandle {
       phase: options.phase,
       metadata: options.metadata,
     });
-    try {
-      const result = await fn();
-      await child.end({ status: "SUCCESS", output: result as unknown });
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await child.end({ status: "FAILURE", error: message });
-      throw err;
-    }
+    return fn().then(
+      (result) => {
+        child.end({ status: "SUCCESS", output: result as unknown });
+        return result;
+      },
+      (err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        child.end({ status: "FAILURE", error: message });
+        throw err;
+      },
+    );
   }
 
-  async end(options: EndSpanOptions = {}): Promise<void> {
+  end(options: EndSpanOptions = {}): void {
     const now = new Date();
-    const span = await this.prisma.span.findUniqueOrThrow({
-      where: { id: this.id },
-      select: { startedAt: true },
-    });
-
-    await this.prisma.span.update({
-      where: { id: this.id },
+    this.queue.push({
+      kind: "span_update",
+      id: this.id,
       data: {
         status: options.status ?? "SUCCESS",
         tokensIn: options.tokensIn,
         tokensOut: options.tokensOut,
         cost: options.cost,
-        output: options.output as any,
+        output: options.output,
         error: options.error,
-        endedAt: now,
-        durationMs: now.getTime() - span.startedAt.getTime(),
+        endedAt: now.toISOString(),
+        durationMs: now.getTime() - this.startedAt.getTime(),
       },
     });
   }
+}
+
+/** No-op span that does nothing. Returned when the observer is unavailable. */
+export class NoopSpanHandle extends SpanHandle {
+  constructor() {
+    super(null as any, "", "", new Date());
+  }
+  startSpan(): SpanHandle {
+    return this;
+  }
+  addEvent(): void {}
+  traceTool<T>(
+    _name: string,
+    _input: unknown,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    return fn();
+  }
+  end(): void {}
 }

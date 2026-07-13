@@ -8,8 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@ai-agent-observer/shared": "*",
-    "@prisma/client": "^6.9.0"
+    "ioredis": "^5.6.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
