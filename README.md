@@ -237,34 +237,29 @@ The server starts as a subprocess, connects to Redis once, and stays running for
 | `span_end` | `spanId`, `status?`, `tokensIn?`, `tokensOut?`, `cost?`, `output?`, `error?` | confirmation | End a span |
 | `span_event` | `spanId`, `type`, `message`, `metadata?` | confirmation | Record a checkpoint, escalation, or event |
 
-### Example flow
+### Tracing protocol
 
-A Claude Code slash command orchestrating agents would use the tools like this:
+The observer ships a reusable tracing protocol at `prompts/tracing-protocol.md`. Instead
+of writing per-step tracing instructions into your orchestrator prompt, reference the
+protocol file:
 
-```
-1. Call trace_start("Debug: filter returns empty results", tags: "debug,cross-repo")
-   → returns traceId
+> If `trace_start` is available, follow the tracing protocol at
+> `<path>/ai-agent-observer/prompts/tracing-protocol.md`.
 
-2. Call span_start("Phase 1A: Backend mapping", traceId: traceId, phase: "1A", role: "analysis")
-   → returns spanId
+The protocol tells the LLM the generic rules: start a trace, wrap agent calls in spans,
+record checkpoint events at user decision points, record escalation events on retries,
+end the trace. Your orchestrator prompt stays clean — it describes *what to do*, the
+protocol describes *how to trace it*.
 
-3. Call your MCP tools (search_backend_routes, etc.)
+### Connecting to your project
 
-4. Call span_end(spanId, status: "SUCCESS")
+Two steps:
 
-5. Call span_start("Scout", traceId: traceId, agent: "scout", modelTier: "sonnet", role: "analysis")
-   → returns scoutSpanId
+1. Add the MCP server to `.mcp.json` (config — one time)
+2. Add one line to your orchestrator prompt referencing the tracing protocol
 
-6. Spawn Scout sub-agent, wait for result
-
-7. Call span_end(scoutSpanId, status: "SUCCESS")
-
-8. Call span_event(scoutSpanId, type: "checkpoint", message: "User approved diagnosis")
-
-... continue through phases ...
-
-9. Call trace_end(traceId, status: "COMPLETED")
-```
+No code changes. No SDK imports. No build steps. The observer remains a separate,
+generic project — it knows nothing about your agents or your workflow.
 
 Each tool call pushes an event to Redis and returns immediately. The dashboard shows the full trace with all spans nested by parent-child depth.
 
