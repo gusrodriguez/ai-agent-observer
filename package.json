@@ -1,0 +1,15 @@
+{
+  "name": "ai-agent-observer",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/dashboard",
+    "build": "npm run build -w packages/shared && npm run build -w packages/sdk && npm run build -w packages/dashboard",
+    "db:migrate": "prisma migrate dev --schema packages/shared/src/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema packages/shared/src/prisma/schema.prisma",
+    "db:seed": "tsx packages/shared/src/seed.ts"
+  }
+}

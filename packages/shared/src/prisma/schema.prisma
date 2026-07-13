@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TraceStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum SpanStatus {
+  RUNNING
+  SUCCESS
+  FAILURE
+  SKIPPED
+}
+
+model Trace {
+  id        String      @id @default(cuid())
+  name      String
+  status    TraceStatus @default(RUNNING)
+  metadata  Json?
+  tags      String[]    @default([])
+  startedAt DateTime    @default(now())
+  endedAt   DateTime?
+  durationMs Int?
+  totalCost Float?
+  createdAt DateTime    @default(now())
+
+  spans Span[]
+
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
+  @@index([tags], type: Gin)
+  @@map("traces")
+}
+
+model Span {
+  id           String     @id @default(cuid())
+  traceId      String
+  parentSpanId String?
+  name         String
+  agent        String?
+  modelTier    String?
+  role         String?
+  phase        String?
+  status       SpanStatus @default(RUNNING)
+  tokensIn     Int?
+  tokensOut    Int?
+  cost         Float?
+  input        Json?
+  output       Json?
+  error        String?
+  metadata     Json?
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+  durationMs   Int?
+
+  trace      Trace   @relation(fields: [traceId], references: [id], onDelete: Cascade)
+  parentSpan Span?   @relation("SpanHierarchy", fields: [parentSpanId], references: [id])
+  childSpans Span[]  @relation("SpanHierarchy")
+  events     Event[]
+
+  @@index([traceId])
+  @@index([parentSpanId])
+  @@index([traceId, startedAt])
+  @@index([agent])
+  @@index([modelTier])
+  @@map("spans")
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  spanId    String
+  type      String
+  message   String
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  span Span @relation(fields: [spanId], references: [id], onDelete: Cascade)
+
+  @@index([spanId, timestamp])
+  @@map("events")
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@ai-agent-observer/dashboard",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server/index.ts",
+    "build": "vite build && tsc -p tsconfig.node.json",
+    "preview": "node dist-server/index.js"
+  },
+  "dependencies": {
+    "@ai-agent-observer/shared": "*",
+    "@prisma/client": "^6.9.0",
+    "express": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "recharts": "^2.15.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/express": "^5.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.0"
+  }
+}
