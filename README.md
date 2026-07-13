@@ -8,34 +8,39 @@ Built to solve a real problem: multi-agent orchestrators (LangChain, CrewAI, cus
 
 ## How it works
 
-The system has three parts: a **tracing SDK** that agent applications import, a **Redis Stream** that buffers events, and an **ingestion worker** that writes them to PostgreSQL for the dashboard.
+The observer provides two integration paths depending on how your agent system is built:
+
+- **SDK** — for code-driven orchestrators (TypeScript applications, LangChain, custom pipelines). Import the package and call `startSpan` / `end` in your code.
+- **MCP server** — for prompt-driven orchestrators (Claude Code, MCP-compatible agent systems). Add to `.mcp.json` and the LLM calls tracing tools directly.
+
+Both push events to the same Redis Stream. An ingestion worker writes them to PostgreSQL. The dashboard reads from Postgres.
 
 ```
-Your agent system                       AI Agent Observer
+Code-driven agent (SDK)                  AI Agent Observer
 ┌─────────────────────┐
-│  Orchestrator       │                ┌─────────────────┐
-│  ├── Scout (sonnet) │   SDK writes   │                 │
-│  ├── Planner (opus) │ ─────────────> │   Redis Stream   │
-│  ├── Worker (haiku) │   XADD         │                 │
-│  │   └── retry?     │                └────────┬────────┘
-│  │       Fixer      │                         │ XREADGROUP
-│  └── Verifier       │                ┌────────▼────────┐
-└─────────────────────┘                │ Ingestion Worker │
-                                       └────────┬────────┘
-                                                │ Prisma
-                                       ┌────────▼────────┐
-                                       │   PostgreSQL     │
-                                       └────────┬────────┘
-                                                │ reads
-                                       ┌────────▼────────┐
-                                       │   Dashboard      │
-                                       │   :3080          │
-                                       └─────────────────┘
+│  import { init }    │    XADD     ┌─────────────────┐
+│  span.start(...)    │ ──────────> │                 │
+│  span.end(...)      │             │   Redis Stream   │
+└─────────────────────┘             │                 │
+                                    └────────┬────────┘
+Prompt-driven agent (MCP)                    │ XREADGROUP
+┌─────────────────────┐             ┌────────▼────────┐
+│  Claude Code        │    XADD     │ Ingestion Worker │
+│  calls trace_start  │ ──────────> └────────┬────────┘
+│  calls span_start   │                      │ Prisma
+│  calls span_end     │             ┌────────▼────────┐
+└─────────────────────┘             │   PostgreSQL     │
+                                    └────────┬────────┘
+                                             │ reads
+                                    ┌────────▼────────┐
+                                    │   Dashboard      │
+                                    │   :3080          │
+                                    └─────────────────┘
 ```
 
-The SDK pushes events to a Redis Stream via `XADD`. An ingestion worker reads from the stream using consumer groups (`XREADGROUP`), writes batches to PostgreSQL, and acknowledges processed messages. The dashboard reads from Postgres.
+### Why both?
 
-The agent system doesn't know about the dashboard, and the dashboard doesn't know about the agent system — they only share the data pipeline.
+Agent systems fall into two camps. In **code-driven** systems (LangChain, CrewAI, custom TypeScript pipelines), you write application code that controls which agents run — the SDK fits naturally. In **prompt-driven** systems (Claude Code, OpenAI Assistants), the LLM itself is the orchestrator and there's no application code to import an SDK into — the MCP server exposes tracing as tools the LLM can call. Same pipeline underneath, different entry points.
 
 ### Why Redis Streams
 
@@ -72,9 +77,9 @@ Aggregate statistics across all traces: total runs, success rate, average durati
 
 ![Analytics view showing cost by model tier, escalation rate, and agent performance table](docs/observe_2.png)
 
-## SDK
+## Integration: SDK
 
-The SDK is a lightweight TypeScript package that agent applications import.
+The SDK is a lightweight TypeScript package for code-driven agent systems.
 
 ```typescript
 import { initObserver } from '@ai-agent-observer/sdk';
@@ -141,16 +146,7 @@ const endpoint = await phase1a.traceTool(
   { name: 'browse-stations' },
   () => mcp.getBackendEndpoint({ name: 'browse-stations' }),
 );
-
-// Works for any async call — external APIs, database queries, etc.
-const analysis = await span.traceTool(
-  'openai-embedding',
-  { text: codeSnippet },
-  () => openai.embeddings.create({ input: codeSnippet, model: 'text-embedding-3-small' }),
-);
 ```
-
-In the dashboard, tool spans appear as children of the agent that called them, with their input/output visible in the detail panel. Failed tool calls show the error message and are highlighted in red in the waterfall.
 
 ### SDK API surface
 
@@ -207,6 +203,71 @@ const observer = initObserver({
 
 If `REDIS_URL` is not set or Redis is unreachable, `initObserver` returns a no-op observer. Every method works but does nothing. The agent code doesn't need a single `if` statement or try/catch — it runs identically whether the observer is active or not.
 
+## Integration: MCP server
+
+The MCP server exposes tracing as tools for prompt-driven agent systems. Any MCP-compatible client (Claude Code, custom agents) can call these tools without importing any code.
+
+### Setup
+
+Add the observer to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "observer": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/ai-agent-observer/packages/mcp/src/index.ts"],
+      "env": {
+        "REDIS_URL": "redis://localhost:6380"
+      }
+    }
+  }
+}
+```
+
+The server starts as a subprocess, connects to Redis once, and stays running for the session. All tool calls are fire-and-forget — if Redis is down, tools return silently and the agent continues.
+
+### Tools
+
+| Tool | Input | Returns | Description |
+|------|-------|---------|-------------|
+| `trace_start` | `name`, `tags?`, `metadata?` | `traceId` | Start a new trace |
+| `trace_end` | `traceId`, `status?` | confirmation | End a trace (COMPLETED/FAILED) |
+| `span_start` | `name`, `traceId`, `parentSpanId?`, `agent?`, `modelTier?`, `role?`, `phase?`, `input?` | `spanId` | Start a span |
+| `span_end` | `spanId`, `status?`, `tokensIn?`, `tokensOut?`, `cost?`, `output?`, `error?` | confirmation | End a span |
+| `span_event` | `spanId`, `type`, `message`, `metadata?` | confirmation | Record a checkpoint, escalation, or event |
+
+### Example flow
+
+A Claude Code slash command orchestrating agents would use the tools like this:
+
+```
+1. Call trace_start("Debug: filter returns empty results", tags: "debug,cross-repo")
+   → returns traceId
+
+2. Call span_start("Phase 1A: Backend mapping", traceId: traceId, phase: "1A", role: "analysis")
+   → returns spanId
+
+3. Call your MCP tools (search_backend_routes, etc.)
+
+4. Call span_end(spanId, status: "SUCCESS")
+
+5. Call span_start("Scout", traceId: traceId, agent: "scout", modelTier: "sonnet", role: "analysis")
+   → returns scoutSpanId
+
+6. Spawn Scout sub-agent, wait for result
+
+7. Call span_end(scoutSpanId, status: "SUCCESS")
+
+8. Call span_event(scoutSpanId, type: "checkpoint", message: "User approved diagnosis")
+
+... continue through phases ...
+
+9. Call trace_end(traceId, status: "COMPLETED")
+```
+
+Each tool call pushes an event to Redis and returns immediately. The dashboard shows the full trace with all spans nested by parent-child depth.
+
 ## Getting started
 
 ### Prerequisites
@@ -231,7 +292,7 @@ docker compose up -d --build
 
 This builds and starts three containers:
 - **PostgreSQL** on port 5433 — stores traces, spans, and events
-- **Redis** on port 6380 — buffers events from the SDK
+- **Redis** on port 6380 — buffers events from the SDK and MCP server
 - **Ingestion worker** — reads from Redis and writes to Postgres (starts automatically after both are healthy, restarts on failure)
 
 ### 3. Set up the database
