@@ -2,7 +2,7 @@
 
 Observability toolkit for AI agent systems. Traces multi-agent workflows end-to-end, tracking which agents ran, what model tier they used, how many tokens they consumed, what they cost, and where they failed — with a web dashboard to inspect it all.
 
-Built to solve a real problem: multi-agent orchestrators (LangChain, CrewAI, custom pipelines) are opaque at runtime. When an agent chain fails or costs spike, there's no structured way to see what happened inside. AI Agent Observe brings the same trace-and-span model used in distributed systems observability (OpenTelemetry, Jaeger) to AI agent workflows.
+Built to solve a real problem: multi-agent orchestrators (LangChain, CrewAI, custom pipelines) are opaque at runtime. When an agent chain fails or costs spike, there's no structured way to see what happened inside. AI Agent Observe brings the same trace-and-span model used in distributed systems observability to AI agent workflows.
 
 ![Trace detail view showing a multi-agent debug session with span waterfall, model tier badges, and cost tracking](docs/observe.png)
 
@@ -26,9 +26,9 @@ Your agent system                       AI Agent Observe
                                        └─────────────────┘
 ```
 
-The SDK writes trace data directly to PostgreSQL. The dashboard is a React SPA backed by an Express API that queries the same database. The agent system doesn't know about the dashboard, and the dashboard doesn't know about the agent system — they only share the database.
+The SDK writes trace data directly to PostgreSQL. The agent system doesn't know about the dashboard, and the dashboard doesn't know about the agent system — they only share the database.
 
-This means any agent framework can integrate: import the SDK, wrap agent calls with `startSpan` / `end`, and the dashboard shows the traces.
+Any agent framework can integrate: import the SDK, wrap agent calls with `startSpan` / `end`, and the dashboard shows the traces.
 
 ## What it tracks
 
@@ -49,7 +49,7 @@ This means any agent framework can integrate: import the SDK, wrap agent calls w
 
 ### Trace detail
 
-The core view. A waterfall visualization shows every span in a trace as a horizontal bar, nested by parent-child depth and positioned on a time axis. Each span displays its agent name, model tier badge, duration, and status. Click any span to inspect its full details in the side panel: token counts, cost, role, phase, JSON inputs/outputs, errors, and events.
+The core view. A waterfall visualization shows every span in a trace as a horizontal bar, nested by parent-child depth and positioned on a time axis.
 
 ### Trace list
 
@@ -63,7 +63,7 @@ Aggregate statistics across all traces: total runs, success rate, average durati
 
 ## SDK
 
-The SDK is a lightweight TypeScript package that agent applications import. It writes directly to PostgreSQL via Prisma.
+The SDK is a lightweight TypeScript package that agent applications import.
 
 ```typescript
 import { initObserver } from '@ai-agent-observer/sdk';
@@ -154,59 +154,12 @@ In the dashboard, tool spans appear as children of the agent that called them, w
 | `span.end({ status, tokensIn, tokensOut, cost, output, error })` | End the span with results |
 | `trace.end(status)` | End the trace, computes total cost |
 
-## Architecture
-
-```
-ai-agent-observer/
-├── packages/
-│   ├── shared/                  @ai-agent-observer/shared
-│   │   └── src/prisma/          Prisma schema (Trace, Span, Event models)
-│   ├── sdk/                     @ai-agent-observer/sdk
-│   │   └── src/                 initObserver, TraceHandle, SpanHandle
-│   └── dashboard/               @ai-agent-observer/dashboard
-│       ├── server/              Express API routes
-│       └── src/                 React + Vite + Tailwind CSS
-└── docker/
-    └── Dockerfile               Multi-stage production build
-```
-
-**Three packages in an npm workspace**, separated by concern:
-
-- **shared** — The Prisma schema and generated TypeScript types. 
-
-- **sdk** — The client library that agent applications import. Contains `initObserver`, `TraceHandle`, and `SpanHandle` classes.
-
-- **dashboard** — A React + Vite SPA served by an Express API.
-
-
-### API endpoints
-
-```
-GET /api/traces            Paginated trace list, filterable by status and tag
-GET /api/traces/:id        Trace with all spans and events (eager-loaded)
-GET /api/spans/:id         Single span with events
-GET /api/analytics         Aggregated stats (groupBy model tier, agent)
-```
-
-## Tech stack
-
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Database | PostgreSQL | Relational model fits traces → spans → events hierarchy; JSON columns for flexible metadata |
-| ORM | Prisma | Type-safe queries, schema-as-code, migration management |
-| SDK | TypeScript | Matches the ecosystem of most agent frameworks |
-| API | Express 5 | Minimal HTTP layer for dashboard queries |
-| Frontend | React 19 + Vite | Fast dev server, SPA with client-side routing |
-| Styling | Tailwind CSS 4 | Utility-first, dark theme, no custom CSS needed |
-| Charts | Recharts | Lightweight charting for cost breakdown visualization |
-| Container | Docker | Multi-stage build for production deployment |
-
 ## Getting started
 
 ### Prerequisites
 
 - Node.js 22+
-- Docker (for Postgres)
+- Docker
 
 ### 1. Start Postgres
 
