@@ -294,7 +294,7 @@ Run migrations again after any schema change.
 
 ### 4. Run
 
-Start everything (containers + dashboard):
+Start backend containers and dashboard:
 
 ```bash
 yarn dev
