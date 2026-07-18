@@ -211,7 +211,12 @@ const observer = initObserver({
 
 The MCP server exposes the observer as tools for prompt-driven agent systems. Any MCP-compatible client, including Claude Code and custom agents, can use tracing without importing the SDK directly.
 
-### Setup
+### Connecting it to your project
+
+MCP integration requires two steps:
+
+1. Add the MCP server to `.mcp.json`.
+2. Reference the tracing protocol from the orchestrator prompt.
 
 Add the observer to your project's `.mcp.json`:
 
@@ -229,7 +234,9 @@ Add the observer to your project's `.mcp.json`:
 }
 ```
 
-The server runs as a subprocess for the duration of the client session and maintains a single Redis connection. It uses the same non-blocking and fail-open behavior described above.
+No application code, SDK imports, or build integration are required. The observer remains independent of the instrumented project and does not need prior knowledge of its agents or workflow.
+
+The MCP server runs as a subprocess for the duration of the client session, maintains a single Redis connection, and uses the non-blocking, fail-open behavior described above.
 
 ### Tools
 
@@ -250,17 +257,6 @@ The observer includes a reusable tracing protocol at `prompts/tracing-protocol.m
 > `<path>/ai-agent-observer/prompts/tracing-protocol.md`.
 
 The protocol defines the common tracing rules: start a trace, wrap agent calls in spans, record checkpoints and escalations, and close the trace when the workflow finishes. This keeps the orchestrator prompt focused on the workflow itself while the protocol defines how that workflow is observed.
-
-### Connecting it to your project
-
-MCP integration requires two steps:
-
-1. Add the MCP server to `.mcp.json`.
-2. Reference the tracing protocol from the orchestrator prompt.
-
-No application code, SDK imports, or build integration are required. The observer remains independent of the instrumented project and does not need prior knowledge of its agents or workflow.
-
-MCP tool calls use the same non-blocking and fail-open behavior described above. The resulting trace can be inspected in the dashboard, with spans arranged according to their parent-child relationships.
 
 ## Getting started
 
