@@ -258,29 +258,27 @@ The observer includes a reusable tracing protocol at `prompts/tracing-protocol.m
 
 The protocol defines the common tracing rules: start a trace, wrap agent calls in spans, record checkpoints and escalations, and close the trace when the workflow finishes. This keeps the orchestrator prompt focused on the workflow itself while the protocol defines how that workflow is observed.
 
-## Getting started
+## Start the infrastructure
 
 ### Prerequisites
 
 * Node.js 22+
 * Docker
 
-### 1. Clone and install
+### 1. Install
 
 ```bash
-git clone <repo-url>
-cd ai-agent-observer
 cp .env.example .env
 npm install
 ```
 
-### 2. Start the infrastructure
+### 2. Start the containers
 
 ```bash
 docker compose up -d --build
 ```
 
-This starts:
+The command launches:
 
 * **PostgreSQL** on port `5433`, used to store traces, spans, and events.
 * **Redis** on port `6380`, used to buffer telemetry events.
