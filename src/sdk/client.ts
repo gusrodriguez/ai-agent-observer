@@ -21,6 +21,8 @@ export function initObserver(config: ObserverConfig = {}): Observer {
   if (!url) return createNoopObserver();
 
   let redis: Redis;
+  let traceCounter = 0;
+
   try {
     redis = new Redis(url, {
       maxRetriesPerRequest: 0,
@@ -43,7 +45,6 @@ export function initObserver(config: ObserverConfig = {}): Observer {
     streamKey: config.streamKey,
   });
 
-  let traceCounter = 0;
   function generateTraceId(): string {
     return `t_${Date.now()}_${++traceCounter}_${Math.random().toString(36).slice(2, 8)}`;
   }

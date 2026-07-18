@@ -6,18 +6,18 @@ import { registerSpanStart } from "./tools/span-start.js";
 import { registerSpanEnd } from "./tools/span-end.js";
 import { registerSpanEvent } from "./tools/span-event.js";
 
-const server = new McpServer({
-  name: "ai-agent-observer",
-  version: "0.1.0",
-});
-
-registerTraceStart(server);
-registerTraceEnd(server);
-registerSpanStart(server);
-registerSpanEnd(server);
-registerSpanEvent(server);
-
 async function main() {
+  const server = new McpServer({
+    name: "ai-agent-observer",
+    version: "0.1.0",
+  });
+
+  registerTraceStart(server);
+  registerTraceEnd(server);
+  registerSpanStart(server);
+  registerSpanEnd(server);
+  registerSpanEvent(server);
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("AI Agent Observer MCP server running on stdio");
