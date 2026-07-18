@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { initObserver } from "@ai-agent-observer/sdk";
-import type { TraceHandle, SpanHandle } from "@ai-agent-observer/sdk";
+import { initObserver } from "../sdk/index.js";
+import type { TraceHandle, SpanHandle } from "../sdk/index.js";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const observer = initObserver({ redisUrl });

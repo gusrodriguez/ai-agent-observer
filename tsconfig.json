@@ -3,6 +3,8 @@
     "target": "ES2022",
     "module": "Node16",
     "moduleResolution": "Node16",
+    "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -12,5 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true
-  }
+  },
+  "include": ["src"],
+  "exclude": ["src/dashboard/client"]
 }

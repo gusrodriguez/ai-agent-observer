@@ -1,24 +1,23 @@
 FROM node:22-alpine AS builder
+RUN corepack enable
 WORKDIR /app
 
-COPY package*.json ./
-COPY packages/shared/package.json packages/shared/
-COPY packages/dashboard/package.json packages/dashboard/
-RUN npm ci --ignore-scripts
+COPY package.json yarn.lock .yarnrc.yml ./
+RUN yarn install --immutable
 
-COPY tsconfig.base.json ./
-COPY packages/shared/ packages/shared/
-COPY packages/dashboard/ packages/dashboard/
+COPY tsconfig.json ./
+COPY prisma/ prisma/
+COPY src/ src/
 
-RUN npx prisma generate --schema packages/shared/src/prisma/schema.prisma
-RUN npm run build -w packages/shared
-RUN npm run build -w packages/dashboard
+RUN npx prisma generate
+RUN vite build --config src/dashboard/vite.config.ts
+RUN tsc
 
 FROM node:22-alpine
 WORKDIR /app
 
-COPY --from=builder /app/packages/dashboard/dist ./dist
-COPY --from=builder /app/packages/dashboard/dist-server ./dist-server
+COPY --from=builder /app/src/dashboard/dist ./dist
+COPY --from=builder /app/dist/dashboard/server ./dist-server
 COPY --from=builder /app/node_modules ./node_modules
 
 ENV NODE_ENV=production

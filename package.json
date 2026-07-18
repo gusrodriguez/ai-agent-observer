@@ -2,19 +2,43 @@
   "name": "ai-agent-observer",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "type": "module",
   "scripts": {
-    "dev": "npm run dev -w packages/dashboard",
-    "build": "npm run build -w packages/shared && npm run build -w packages/sdk && npm run build -w packages/mcp && npm run build -w packages/ingestion && npm run build -w packages/dashboard",
-    "mcp": "tsx packages/mcp/src/index.ts",
-    "ingest": "tsx packages/ingestion/src/index.ts",
+    "dev": "docker compose up -d && tsx src/dashboard/server/index.ts",
+    "dev:dashboard": "tsx src/dashboard/server/index.ts",
+    "build:ingestion": "docker compose up -d --build ingestion",
     "services": "docker compose up -d",
+    "build": "vite build --config src/dashboard/vite.config.ts && tsc",
+    "mcp": "tsx src/mcp/index.ts",
     "services:down": "docker compose down",
     "test:trace": "tsx test/send-trace.ts",
-    "db:migrate": "prisma migrate dev --schema packages/shared/src/prisma/schema.prisma",
-    "db:generate": "prisma generate --schema packages/shared/src/prisma/schema.prisma",
-    "db:seed": "tsx packages/shared/src/seed.ts"
-  }
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@prisma/client": "^6.9.0",
+    "express": "^5.1.0",
+    "ioredis": "^5.6.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "recharts": "^2.15.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "prisma": "^6.9.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.0"
+  },
+  "packageManager": "yarn@4.17.1"
 }

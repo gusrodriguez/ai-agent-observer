@@ -18,8 +18,10 @@ if (process.env.NODE_ENV === "production") {
     res.sendFile(resolve(import.meta.dirname, "../dist/index.html"));
   });
 } else {
+  const { resolve } = await import("node:path");
   const { createServer } = await import("vite");
   const vite = await createServer({
+    root: resolve(import.meta.dirname, ".."),
     server: { middlewareMode: true },
     appType: "spa",
   });

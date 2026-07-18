@@ -225,7 +225,7 @@ Add the observer to your project's `.mcp.json`:
   "mcpServers": {
     "observer": {
       "command": "npx",
-      "args": ["tsx", "/path/to/ai-agent-observer/packages/mcp/src/index.ts"],
+      "args": ["tsx", "/path/to/ai-agent-observer/src/mcp/index.ts"],
       "env": {
         "REDIS_URL": "redis://localhost:6380"
       }
@@ -258,7 +258,7 @@ The observer includes a reusable tracing protocol at `prompts/tracing-protocol.m
 
 The protocol defines the common tracing rules: start a trace, wrap agent calls in spans, record checkpoints and escalations, and close the trace when the workflow finishes. This keeps the orchestrator prompt focused on the workflow itself while the protocol defines how that workflow is observed.
 
-## Start the infrastructure
+## Getting started
 
 ### Prerequisites
 
@@ -269,50 +269,63 @@ The protocol defines the common tracing rules: start a trace, wrap agent calls i
 
 ```bash
 cp .env.example .env
-npm install
+yarn install
 ```
 
-### 2. Start the containers
+### 2. Start the services
 
 ```bash
-docker compose up -d --build
+yarn services
 ```
 
-The command launches:
+This starts Postgres, Redis, and the ingestion worker as containers.
 
-* **PostgreSQL** on port `5433`, used to store traces, spans, and events.
-* **Redis** on port `6380`, used to buffer telemetry events.
-* **Ingestion worker**, which reads events from Redis and writes them to PostgreSQL.
+### 3. Initialize the database (first time only)
 
-The ingestion worker starts after PostgreSQL and Redis are healthy and restarts automatically after a failure.
-
-### 3. Initialize the database
+Once the containers are running, generate the Prisma client, run migrations, and seed example data:
 
 ```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
+yarn db:generate
+yarn db:migrate
+yarn db:seed
 ```
 
-The seed command creates three example traces representing a successful workflow with escalation, a failed workflow, and a workflow still in progress.
+Run migrations again after any schema change.
 
-### 4. Start the dashboard
+### 4. Run
+
+Start everything (containers + dashboard):
 
 ```bash
-npm run dev
+yarn dev
 ```
 
 Open http://localhost:3080
 
-### 5. Test the pipeline
+### 4. Test the pipeline
 
 Send a sample trace through the complete pipeline:
 
 ```bash
-npm run test:trace
+yarn test:trace
 ```
 
 The command simulates a multi-agent debugging workflow and sends its traces through Redis, the ingestion worker, and PostgreSQL. Open the dashboard to inspect the resulting span waterfall.
+
+### Scripts
+
+| Script | Description |
+|--------|-------------|
+| `yarn dev` | Start containers and dashboard dev server |
+| `yarn dev:dashboard` | Start the dashboard dev server only |
+| `yarn services` | Start Postgres, Redis, and ingestion containers only |
+| `yarn services:down` | Stop all containers |
+| `yarn build:ingestion` | Rebuild and restart the ingestion container after code changes |
+| `yarn mcp` | Start the MCP server |
+| `yarn test:trace` | Send a sample trace through the pipeline |
+| `yarn db:migrate` | Run Prisma migrations |
+| `yarn db:generate` | Generate Prisma client |
+| `yarn db:seed` | Seed example data |
 
 ## Production deployment
 

@@ -102,7 +102,7 @@ Session ends
 ## Integration checklist
 
 - [ ] Add observer MCP server to `.mcp.json`
-- [ ] Start observer infrastructure (`docker compose up -d && npm run db:migrate`)
+- [ ] Start observer infrastructure (`docker compose up -d && yarn db:migrate`)
 - [ ] Add to your orchestrator prompt: "If `trace_start` is available, follow the tracing protocol at `<path>/prompts/tracing-protocol.md`"
 - [ ] Restart Claude Code to pick up the MCP tools
 - [ ] Run your orchestrator — traces appear in the dashboard at `localhost:3080`

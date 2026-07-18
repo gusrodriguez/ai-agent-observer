@@ -1,23 +1,21 @@
 FROM node:22-alpine AS builder
+RUN corepack enable
 WORKDIR /app
 
-COPY package*.json ./
-COPY packages/shared/package.json packages/shared/
-COPY packages/ingestion/package.json packages/ingestion/
-RUN npm ci --ignore-scripts
+COPY package.json yarn.lock .yarnrc.yml ./
+RUN yarn install --immutable
 
-COPY tsconfig.base.json ./
-COPY packages/shared/ packages/shared/
-COPY packages/ingestion/ packages/ingestion/
+COPY tsconfig.json ./
+COPY prisma/ prisma/
+COPY src/ingestion/ src/ingestion/
 
-RUN npx prisma generate --schema packages/shared/src/prisma/schema.prisma
-RUN npm run build -w packages/shared
-RUN npm run build -w packages/ingestion
+RUN npx prisma generate
+RUN tsc
 
 FROM node:22-alpine
 WORKDIR /app
 
-COPY --from=builder /app/packages/ingestion/dist ./dist
+COPY --from=builder /app/dist/ingestion ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
 CMD ["node", "dist/index.js"]

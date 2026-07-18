@@ -1,12 +1,12 @@
 /**
  * Sends a realistic trace through the SDK → Redis pipeline.
- * Run the ingestion worker (`npm run ingest`) first, then run this script.
+ * Run the ingestion worker (`yarn ingest`) first, then run this script.
  *
  * Usage:
- *   npm run test:trace
+ *   yarn test:trace
  */
 
-import { initObserver } from "../packages/sdk/src/index.js";
+import { initObserver } from "../src/sdk/index.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
