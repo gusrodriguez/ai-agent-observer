@@ -1,11 +1,3 @@
-/**
- * Sends a realistic trace through the SDK → Redis pipeline.
- * Run the ingestion worker (`yarn ingest`) first, then run this script.
- *
- * Usage:
- *   yarn test:trace
- */
-
 import { initObserver } from "../src/sdk/index.js";
 
 function sleep(ms: number): Promise<void> {
