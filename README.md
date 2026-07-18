@@ -312,21 +312,6 @@ yarn test:trace
 
 The command simulates a multi-agent debugging workflow and sends its traces through Redis, the ingestion worker, and PostgreSQL. Open the dashboard to inspect the resulting span waterfall.
 
-### Scripts
-
-| Script | Description |
-|--------|-------------|
-| `yarn dev` | Start containers and dashboard dev server |
-| `yarn dev:dashboard` | Start the dashboard dev server only |
-| `yarn services` | Start Postgres, Redis, and ingestion containers only |
-| `yarn services:down` | Stop all containers |
-| `yarn build:ingestion` | Rebuild and restart the ingestion container after code changes |
-| `yarn mcp` | Start the MCP server |
-| `yarn test:trace` | Send a sample trace through the pipeline |
-| `yarn db:migrate` | Run Prisma migrations |
-| `yarn db:generate` | Generate Prisma client |
-| `yarn db:seed` | Seed example data |
-
 ## Production deployment
 
 For production, deploy the dashboard and ingestion worker as separate containers and configure them to use production PostgreSQL and Redis instances through `DATABASE_URL` and `REDIS_URL`.
