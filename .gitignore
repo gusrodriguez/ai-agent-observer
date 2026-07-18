@@ -3,6 +3,6 @@ dist/
 dist-server/
 .env
 *.tsbuildinfo
-
-# Yarn 4
 .yarn/*
+.DS_Store
+
