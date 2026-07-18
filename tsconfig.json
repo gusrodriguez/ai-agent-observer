@@ -16,5 +16,5 @@
     "isolatedModules": true
   },
   "include": ["src"],
-  "exclude": ["src/dashboard/client"]
+  "exclude": ["src/dashboard/ui"]
 }

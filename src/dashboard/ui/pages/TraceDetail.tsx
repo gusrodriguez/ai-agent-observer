@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchTrace, type TraceDetail as TraceDetailType, type SpanDetail as SpanDetailType } from "../api/client";
+import { fetchTrace, type TraceDetail as TraceDetailType, type SpanDetail as SpanDetailType } from "../services";
 import StatusBadge from "../components/StatusBadge";
 import CostBadge from "../components/CostBadge";
 import SpanWaterfall from "../components/SpanWaterfall";

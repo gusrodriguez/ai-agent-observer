@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import type { TraceListItem } from "../api/client";
+import type { TraceListItem } from "../services";
 import StatusBadge from "./StatusBadge";
 import CostBadge from "./CostBadge";
 import { formatDuration, formatDate } from "../lib/format";

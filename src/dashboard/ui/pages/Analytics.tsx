@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchAnalytics, type AnalyticsData } from "../api/client";
+import { fetchAnalytics, type AnalyticsData } from "../services";
 import StatsCard from "../components/StatsCard";
 import { formatDuration, formatCost } from "../lib/format";
 import {

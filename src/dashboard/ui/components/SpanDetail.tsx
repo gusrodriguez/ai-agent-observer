@@ -1,4 +1,4 @@
-import type { SpanDetail as SpanDetailType } from "../api/client";
+import type { SpanDetail as SpanDetailType } from "../services";
 import StatusBadge from "./StatusBadge";
 import CostBadge from "./CostBadge";
 import JsonViewer from "./JsonViewer";

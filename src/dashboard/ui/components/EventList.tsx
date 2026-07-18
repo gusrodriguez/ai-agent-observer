@@ -1,4 +1,4 @@
-import type { EventDetail } from "../api/client";
+import type { EventDetail } from "../services";
 import { formatDate } from "../lib/format";
 
 export default function EventList({ events }: { events: EventDetail[] }) {

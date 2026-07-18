@@ -1,4 +1,4 @@
-import type { SpanDetail } from "../api/client";
+import type { SpanDetail } from "../services";
 import { statusBarColors, modelTierColors } from "../lib/colors";
 import StatusBadge from "./StatusBadge";
 import { formatDuration } from "../lib/format";

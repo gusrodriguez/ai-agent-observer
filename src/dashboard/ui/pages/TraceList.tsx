@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchTraces, type TraceListResponse } from "../api/client";
+import { fetchTraces, type TraceListResponse } from "../services";
 import TraceTable from "../components/TraceTable";
 import FilterBar from "../components/FilterBar";
 
